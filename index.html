@@ -1,0 +1,187 @@
+<title>Impf-Effektivität</title>
+<meta charset="UTF-8">
+<body>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script> 
+<div>
+<canvas id="chart1" style="width:100%; max-width:700px; float:left"></canvas>
+<canvas id="chart2" style="width:100%; max-width:700px; float:left"></canvas>
+</div>
+<div style="clear:left">
+
+<script>
+var pr0 = new URL(document.URL).searchParams.get("q");
+var pr1;
+var wo;
+var wo2;
+var error;
+pr1 = new URL(document.URL).searchParams.get("its");
+wo2 = wo = "auf der Intensivstation";
+if(pr1 == null) {
+	pr1 = new URL(document.URL).searchParams.get("kh");
+	wo2 = wo = "im Krankenhaus";
+}
+if(pr1 == null) {
+	pr1 = new URL(document.URL).searchParams.get("pos");
+	wo2 = wo = "mit symptomatischer Infektion gemeldet";
+}
+if(pr1 == null) {
+	pr1 = new URL(document.URL).searchParams.get("tot");
+	wo = "unter den Verstorbenen";
+	wo2 = "verstorben"
+}
+
+if(pr1 == null) {
+	error="Bitte unten etwas auswählen.";
+}
+var inf1 = pr1/100;
+var bef1 = pr0/100;
+
+if((error == null) && (inf1 <= 0 || inf1 >= 1 || bef1 <= 0 || bef1 >= 1)){
+	error="Falsche Parameter";
+}
+
+var inf2 = 1-inf1;
+var bef2 = 1-bef1;
+
+var inf2_100 = 100/inf1*inf2;
+
+var theo = inf2_100 / bef2 * bef1;
+var risiko = theo / 100;
+var ve = 1 - 1 / risiko;
+
+var a = "\
+Wenn {prInf1}% {wo} geimpft sind, sind also pro 100 Geimpfte 100/{inf1}*{inf2} = {inf2_100} Ungeimpfte {wo}.\
+<br/>\
+<br/>\
+In der Bevölkerung sind {prBef1:.1f}% geimpft. Wäre die Impfquote dagegen 50%, also gleich viele geimpft wie ungeimpft, \
+wären pro 100 Geimpfte somit {inf2_100}/{bef2}*{bef1}={theo:1f} Ungeimpfte {wo}.\
+<br/>\
+<br/>\
+Somit ist das Risiko für Ungeimpfte {risiko:.1f} mal so hoch, was einer Effektivität der Impfung von 1-1/{risiko:.1f}={ve:.0f}% entspricht.\
+<br/>\
+<br/>\
+Wäre niemand geimpft, wären rechnerisch {risiko:.1f}*{inf1}+{inf2}={theo2} mal so viele Menschen {wo2}. \
+(Ohne Berücksichtigung anderer bremsender Effekte der Impfung)\
+<br/>\
+<br/>\
+Wären alle geimpft, wären rechnerisch {inf2}*{ve:.0f}%={theo3}% weniger Menschen {wo2}. \
+(Ohne Berücksichtigung anderer bremsender Effekte der Impfung)\
+";
+
+function f(a) {
+	return a.replaceAll(".", ",");
+}
+
+a = a.replaceAll("{wo}", wo)
+.replaceAll("{wo2}", wo2)
+.replaceAll("{inf1}", f(inf1.toFixed(3)))
+.replaceAll("{inf2}", f(inf2.toFixed(3)))
+.replaceAll("{bef1}", f(bef1.toFixed(3)))
+.replaceAll("{bef2}", f(bef2.toFixed(3)))
+.replaceAll("{theo:1f}", f(theo.toFixed(1)))
+.replaceAll("{inf2_100}", f(inf2_100.toFixed(1)))
+.replaceAll("{prBef1:.1f}", f((bef1*100).toFixed(1)))
+.replaceAll("{prInf1}", f((inf1 * 100).toFixed(1)))
+.replaceAll("{risiko:.1f}", f((risiko).toFixed(1)))
+.replaceAll("{ve:.0f}", f((100*ve).toFixed(0)))
+.replaceAll("{theo2}", f((risiko*inf1+inf2).toFixed(1)))
+.replaceAll("{theo3}", f((100*(inf2*ve)).toFixed(0)))
+;
+
+
+if(error != null) {
+	document.write(error);
+	document.GetElementById("chart1").style.visible=false;
+	document.GetElementById("chart2").style.visible=false;
+} else {
+	document.write(a);
+}
+
+
+new Chart("chart1", {
+  type: "pie",
+  data: {
+    labels: ["Geimpft (Impfdurchbrüche)", "Ungeimpft (Vermeidbar durch Impfung)", "Ungeimpft (Unvermeidbar)"],
+    datasets: [{
+      data: [inf1*100, (inf2*ve)*100, (inf2-inf2*ve)*100],
+      backgroundColor: ["grey", "red", "#ff8080"]
+    }]
+  },
+  options: {
+    title: {
+      display: true,
+      text: wo
+    }
+  }
+});
+new Chart("chart2", {
+  type: "pie",
+  data: {
+    labels: ["Geimpft", "Ungeimpft"],
+    datasets: [{
+      data: [bef1*100, bef2*100],
+      backgroundColor: ["grey", "red"]
+    }]
+  },
+  options: {
+    title: {
+      display: true,
+      text: "Bevölkerungsanteile (Impfquote)"
+    }
+  }
+});
+</script>
+</div>
+
+
+
+
+<br/>
+<br/>
+<br/>
+<br/>
+<hr>
+<p>
+Die Parameter können Sie unten ändern: (Voreingestellte Werte aus RKI Wochenbericht)
+</p>
+
+<hr>
+<h1>Altersgruppe 18-59</h1>
+<form action="">
+	Auf der Intensivstation: <input type="text" name="its" value="12.5" />%
+	<br>Impfquote: <input type="text" name="q" value="71.9" />%
+	<br><input type="submit" value="Berechnen">
+</form>
+<hr>
+<form action="">
+	Im Krankenhaus: <input type="text" name="kh" value="20.9" />%
+	<br>Impfquote: <input type="text" name="q" value="71.9" />%
+	<br><input type="submit" value="Berechnen">
+</form>
+<hr>
+<form action="">
+	Mit symptomatischer Infektion gemeldet: <input type="text" name="pos" value="39.7" />%
+	<br>Impfquote: <input type="text" name="q" value="71.9" />%
+	<br><input type="submit" value="Berechnen">
+</form>
+
+<h1>Altersgruppe 60+</h1>
+<form action="">
+	Auf der Intensivstation: <input type="text" name="its" value="34.5" />%
+	<br>Impfquote: <input type="text" name="q" value="84.9" />%
+	<br><input type="submit" value="Berechnen">
+</form>
+<hr>
+<form action="">
+	Im Krankenhaus: <input type="text" name="kh" value="44.9" />%
+	<br>Impfquote: <input type="text" name="q" value="84.9" />%
+	<br><input type="submit" value="Berechnen">
+</form>
+<hr>
+<form action="">
+	Mit symptomatischer Infektion gemeldet: <input type="text" name="pos" value="60.5" />%
+	<br>Impfquote: <input type="text" name="q" value="84.9" />%
+	<br><input type="submit" value="Berechnen">
+</form>
